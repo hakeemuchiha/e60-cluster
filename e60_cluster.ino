@@ -26,17 +26,20 @@ void setup(void)
   getRangeFuelOdo();
 }
 
+//Create function to pass CANBUS Commands
+void send_command(uint32_t id, byte arr[],CAN_message_t &msg_name){  
+//  char outbuf[8],msg_id[8];
+  msg_name.id = id; //Set canbus id to the id passed in the function  
+  msg_name.len = sizeof(arr)+1; //Set Size equal to the amount passed in
+  for (int i = 0; i <= sizeof(arr); i++) {
+    msg_name.buf[i] = arr[i];
+  }
+}
 
 void init_cluster(){
-  unsigned long id = 0x130;
-  Serial.print(id);
-  data.id = id;
-  data.len = 5;
-  data.buf[0]= 0x45; //0x45;  //Key Status
-  data.buf[1]= 0x42; // 0x40;  //Transponder Detected
-  data.buf[2]= 0x69;  // 0x21;  //Terminal Status
-  data.buf[3]= 0x8F;  // Steering lock?
-  data.buf[4]= 0xE2;  //Counter and Checksum  
+  uint32_t id = 0x130;
+  byte arr[] = {0x45,0x42,0x69,0x8F,0xE2};
+  send_command(id, arr,data);
 }
 
 void getRangeFuelOdo(){
@@ -116,7 +119,7 @@ void loop(void)
   delay(100);
   Can1.write(msg);    //you could do it your way as well
   Can1.write(data);    //you could do it your way as well
-  Can1.write(info);    //you could do it your way as well
+//  Can1.write(info);    //you could do it your way as well
   Can1.write(speedo);    //you could do it your way as well
   Can1.write(fuel_info);    //you could do it your way as well
   //Can1.write(temp);    //you could do it your way as well
