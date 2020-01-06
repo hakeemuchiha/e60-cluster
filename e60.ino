@@ -23,10 +23,15 @@ void setup() {
   pinMode(2, OUTPUT); // for the transceiver enable pin
   Can1.begin();
   Can1.setBaudRate(100000);
+
+  Can1.setMBFilter(REJECT_ALL);
+  Can1.enableMBInterrupts();
+  Can1.setMBFilter(MB0, 0x800, 0x801, 0x803, 0x804, 0x805);
   Can1.enableFIFO();
   Can1.enableFIFOInterrupt();
   Can1.onReceive(FIFO, canSniff);
   Can1.mailboxStatus();
+  
 
 //  wakeCluster();
 //  lightCluster();  
@@ -116,28 +121,57 @@ void sendABSCtr() {
     byte arr[] = {0xF0 | absCtr ,0xFF};
     send_command(id, arr, absMsg);
     Can1.write(absMsg);
+    Serial.print("ABS : ");
+    Serial.print(absCtr);
 }
  
 void sendAirBagCtr() {
     
-    char data[2];
+//    char data[2];
     airBagCtr++;
     if (airBagCtr == 0xff) airBagCtr = 0;
     id = 0x0D7;
     byte arr[] = {absCtr ,0xFF};
     send_command(id, arr, absMsg2);
     Can1.write(absMsg2);
+//8 1 3 C0 FF FF FF FF FF 
+//      id = 0x592;
+//      byte arr[] = {0x08, 0x01, 0x03, 0xC1, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+//80  21  D5  7E  DE  F4  FD  B7
+//      byte arr[] = {0x0, 0x13, 0x01, 0x31, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+//Len = 8
+      
+//      byte arr2[] = {0x0, 0x13,0x01, 30, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+//      send_command(id, arr, absMsg);
+//      send_command(id, arr2, absMsg);
+//      Can1.write(absMsg);
+//      Can1.write(absMsg2);
 }
 
 //Send Fuel Level
 void getFuelLevel(){
   //76 0F BE 1A 00
-  id = 0x349;
-  byte arr[] = {lowByte(gasTest),highByte(gasTest),lowByte(gasTest),highByte(gasTest),0};
-  send_command(id, arr, fuelLevelMsg);
-  Can1.write(fuelLevelMsg);
-  gasTest+=1;
+  Serial.print("0 :");  Serial.print(fuel1 / 256);
+  Serial.print(" 1 :");  Serial.print(fuel1 & 0xff);
+  Serial.print(" 2 :");  Serial.print(fuel2 / 256);
+  Serial.print(" 3 :");  Serial.print(fuel2 & 0xff);
 
+//  data[0] = fuel1 / 256;
+//    data[1] = fuel1 & 0xff;
+//    data[2] = fuel2 / 256;
+//    data[3] = fuel2 & 0xff;
+//  id = 0x349;
+//  byte arr[] = {fuel1/256,fuel1&0xff,fuel2/256,0};
+//  send_command(id, arr, fuelLevelMsg);
+//  gasTest+=0X76;  
+  fuelLevelMsg.id = 0x349; //From ECU
+  fuelLevelMsg.len =5;
+  fuelLevelMsg.buf[0]= 0x76;//0x5F;
+  fuelLevelMsg.buf[1]= 0x0F;//0x59;
+  fuelLevelMsg.buf[2]= 0xBE; //Throttle
+  fuelLevelMsg.buf[3]= 0x1A; //Throttle
+  fuelLevelMsg.buf[4]= 0; //Throttle
+  Can1.write(fuelLevelMsg);
   
 }
 
@@ -155,16 +189,15 @@ void loop() {
 
   //Custom Code
   
-  
-
   static uint32_t t = millis();
   static uint32_t s = millis();
+  static uint32_t u = millis();
 //  static uint32_t s = millis();
 //  int timeElapsed = millis() - t;
   if(millis() - s > 10){
     s = millis();
-    Serial.print("10 sec");
     sendRPM();
+//    sendAirBagCtr();
   }
   if ( millis() - t > 100 ) {
     t = millis();
@@ -182,22 +215,22 @@ void loop() {
     
 //    getMileage();
 //    sendRPM();
-    getSpeed();
+//    getSpeed();
     
-//    sendABSCtr();
-//    sendAirBagCtr();
-//    removeABS();
-    getFuelLevel();
+    sendABSCtr();
+    sendAirBagCtr();
+    removeABS();
+//    getFuelLevel();
     
   }
-  if ( millis() - t > 200 ) {
-    t = millis();
-    CAN_message_t frame2;
+  if ( millis() - u > 200 ) {
+    u = millis();
+    CAN_message_t frame3;
     static uint32_t id = 0;
     id++;
     if ( id > 200 ) id = 1;
-    frame2.id = id;
-    Can1.write(frame2);
+    frame3.id = id;
+    Can1.write(frame3);
 //    sendABSCtr();
 //    sendAirBagCtr();
 //    removeABS();
